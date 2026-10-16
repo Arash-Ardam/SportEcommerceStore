@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="SharedKernel/SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Venue/">
+    <Project Path="VenueDomain/VenueDomain.csproj" />
+  </Folder>
+</Solution>
