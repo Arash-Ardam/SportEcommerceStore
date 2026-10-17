@@ -7,4 +7,9 @@
   <Folder Name="/src/Modules/Venue/">
     <Project Path="VenueDomain/VenueDomain.csproj" />
   </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Modules/" />
+  <Folder Name="/tests/Modules/Venues/">
+    <Project Path="VenueDomainTests/VenueDomainTests.csproj" Id="29406b2f-283f-40fa-a34f-06df5ee4cc8f" />
+  </Folder>
 </Solution>

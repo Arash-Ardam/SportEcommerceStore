@@ -12,7 +12,7 @@ namespace VenueDomain
             
         }
 
-        public VenueAdmin Build(string userId,DateTimeOffset addedAt)
+        public static VenueAdmin Build(string userId,DateTimeOffset addedAt)
             => new VenueAdmin
             {
                 Id = Guid.NewGuid(),

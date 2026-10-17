@@ -2,8 +2,6 @@
 
 namespace VenueDomain.Events
 {
-    public record FaclilitiesChangedEvent(
-        Guid VenueId,
-        string description) : AggregateEvent;
+    public record FaclilitiesChangedEvent(Guid VenueId) : AggregateEvent;
 
 }
