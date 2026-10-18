@@ -5,90 +5,124 @@ namespace VenueDomain
 {
     public class Venue : AggregateRoot<Guid>
     {
-        private List<VenueAdmin> _admins = [];
-        private List<Facility> _facilities = [];
+        public const int NameMaxLength = 50;
 
-		public string Name { get; internal set; } = string.Empty;
+        private readonly List<VenueAdmin> _admins = [];
+        private readonly List<Facility> _facilities = [];
+
+        public string Name { get; private set; } = string.Empty;
         public VenueStatus Status { get; private set; }
         public IReadOnlyList<VenueAdmin> Admins => _admins;
-        public Address? Address { get; private set; } 
-        public GeoLocation? Location { get; private set; }
+        public Address Address { get; private set; } = null!;
+        public GeoLocation Location { get; private set; } = null!;
         public IReadOnlyList<Facility> Facilities => _facilities;
 
-        public static Venue Register(string name,VenueAdmin admin ,Address address, GeoLocation location)
+        private Venue() { }
+
+        // ادمین اول فقط با userId می‌آید؛ خود Venue شیء VenueAdmin را می‌سازد
+        public static Venue Register(string name, string firstAdminUserId, Address address, GeoLocation location, DateTimeOffset now)
         {
-            if(name.Length > 50) throw VenueErrors.InvalidVenueName();
+            ValidateName(name);
+            if (address is null) throw VenueErrors.InvalidAddress();
+            if (location is null) throw VenueErrors.InvalidLocation();
 
-            return new Venue
-			{
-				Id = Guid.NewGuid(),
-				Name = name,
-				Status = VenueStatus.Active,
-				_admins = new List<VenueAdmin> { admin },
-				Address = address,
-				Location = location
-			};
-		}
+            var venue = new Venue
+            {
+                Id = Guid.NewGuid(),
+                Name = name.Trim(),
+                Status = VenueStatus.Active,
+                Address = address,
+                Location = location
+            };
 
-        public void UpdateProfile(string name, Address address, GeoLocation location)
-        {
-            if(name.Length > 50) throw VenueErrors.InvalidVenueName();
-            Name = name;
-            Address = address;
-            Location = location;
+            venue._admins.Add(VenueAdmin.Create(firstAdminUserId, now));
 
-            Raise(new VenueProfileUpdatedEvent(base.Id));
+            venue.Raise(new VenueCreatedEvent(venue.Id, venue.Name, address, location));
+            return venue;
         }
 
-        public void Relocate(GeoLocation newLocation,Address address,string description)
+        // فقط اسم؛ تغییر مکان فقط از Relocate انجام می‌شود
+        public void UpdateProfile(string name)
         {
+            ValidateName(name);
+            if (name.Trim() == Name) return;
+
+            Name = name.Trim();
+            Raise(new VenueProfileUpdatedEvent(Id, Name));
+        }
+
+        public void Relocate(GeoLocation newLocation, Address newAddress)
+        {
+            if (newAddress is null) throw VenueErrors.InvalidAddress();
+            if (newLocation is null) throw VenueErrors.InvalidLocation();
+
+            // record: مقایسه بر اساس مقدار. اگر چیزی عوض نشده، رویدادی هم لازم نیست
+            if (newLocation == Location && newAddress == Address) return;
+
             Location = newLocation;
-            Address = address;
-            Raise(new VenueRelocatedEvent(base.Id, description));
+            Address = newAddress;
+            Raise(new VenueRelocatedEvent(Id, newAddress, newLocation));
         }
 
         public void AddFacility(Facility facility)
-		{
-            if(Facilities.Any(f => f.Title == facility.Title)) throw VenueErrors.DuplicateFacility(facility.Title);
-
-			_facilities.Add(facility);
-			Raise(new FaclilitiesChangedEvent(base.Id));
-		}
-
-        public void RemoveFacility(Facility facility)
         {
-			if (!Facilities.Any(f => f.Title == facility.Title)) throw VenueErrors.FacilityNotFound(facility.Title);
+            if (facility is null) throw VenueErrors.InvalidFacilityTitle();
+            if (_facilities.Any(f => f.Title == facility.Title)) throw VenueErrors.DuplicateFacility(facility.Title);
 
-			_facilities.Remove(facility);
-			Raise(new FaclilitiesChangedEvent(base.Id));
-		}
+            _facilities.Add(facility);
+            Raise(new FacilitiesChangedEvent(Id, _facilities.Select(f => f.Title).ToList()));
+        }
 
-        public void AddAdmin(VenueAdmin admin)
-		{
-			if (Admins.Any(a => a.UserId == admin.UserId)) throw VenueErrors.DuplicateAdmin(admin.UserId);
-
-			_admins.Add(admin);
-		}
-
-        public void RemoveAdmin(VenueAdmin admin)
+        public void RemoveFacility(string title)
         {
-			if (!Admins.Any(a => a.UserId == admin.UserId)) throw VenueErrors.AdminNotFound(admin.UserId);
-            if(Admins.Count <= 1) throw VenueErrors.AdminRemoveLimit();
+            var target = _facilities.FirstOrDefault(f => f.Title == title)
+                ?? throw VenueErrors.FacilityNotFound(title);
 
-			_admins.Remove(admin);
-		}
+            _facilities.Remove(target);
+            Raise(new FacilitiesChangedEvent(Id, _facilities.Select(f => f.Title).ToList()));
+        }
+
+        public void AddAdmin(string userId, DateTimeOffset now)
+        {
+            if (_admins.Any(a => a.UserId == userId)) throw VenueErrors.DuplicateAdmin(userId);
+
+            _admins.Add(VenueAdmin.Create(userId, now));
+            Raise(new VenueAdminAddedEvent(Id, userId));
+        }
+
+        public void RemoveAdmin(string userId)
+        {
+            var target = _admins.FirstOrDefault(a => a.UserId == userId)
+                ?? throw VenueErrors.AdminNotFound(userId);
+
+            if (_admins.Count <= 1) throw VenueErrors.AdminRemoveLimit();
+
+            _admins.Remove(target);
+            Raise(new VenueAdminRemovedEvent(Id, userId));
+        }
 
         public void Suspend()
         {
+            if (Status == VenueStatus.Suspended)
+                throw VenueErrors.InvalidVenueStatusTransition(Status, VenueStatus.Suspended);
+
             Status = VenueStatus.Suspended;
-			Raise(new VenueStatusChangedEvent(base.Id, VenueStatus.Suspended));
-		}
+            Raise(new VenueStatusChangedEvent(Id, VenueStatus.Suspended));
+        }
 
         public void Activate()
-		{
-			Status = VenueStatus.Active;
-			Raise(new VenueStatusChangedEvent(base.Id, VenueStatus.Active));
-		}
+        {
+            if (Status == VenueStatus.Active)
+                throw VenueErrors.InvalidVenueStatusTransition(Status, VenueStatus.Active);
 
-	}
+            Status = VenueStatus.Active;
+            Raise(new VenueStatusChangedEvent(Id, VenueStatus.Active));
+        }
+
+        private static void ValidateName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) throw VenueErrors.NullVenueName();
+            if (name.Trim().Length > NameMaxLength) throw VenueErrors.InvalidVenueName();
+        }
+    }
 }

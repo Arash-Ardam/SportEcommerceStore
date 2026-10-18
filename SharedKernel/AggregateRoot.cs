@@ -1,23 +1,15 @@
-﻿namespace SharedKernel
+namespace SharedKernel
 {
-    public abstract class AggregateRoot<TId>  
+    public abstract class AggregateRoot<TId> : Entity<TId> where TId : notnull
     {
-        public TId Id { get; protected set; }
-        public List<AggregateEvent> Events { get; protected set; } = new();
+        private readonly List<AggregateEvent> _events = new();
 
-        protected AggregateRoot()
-        {
-            Id = default!;
-        }
+        public IReadOnlyList<AggregateEvent> Events => _events;
 
-        public void Raise(AggregateEvent aggregateEvent)
-        {
-            Events.Add(aggregateEvent);
-        }
+        protected AggregateRoot() { }
 
-        public void ClearEvents()
-        {
-            Events.Clear();
-        }
+        protected void Raise(AggregateEvent aggregateEvent) => _events.Add(aggregateEvent);
+
+        public void ClearEvents() => _events.Clear();
     }
 }

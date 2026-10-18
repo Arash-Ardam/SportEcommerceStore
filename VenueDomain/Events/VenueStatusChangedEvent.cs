@@ -1,7 +1,6 @@
-﻿using SharedKernel;
+using SharedKernel;
 
 namespace VenueDomain.Events
 {
-	public record VenueStatusChangedEvent(Guid venueId, VenueStatus newStatus) : AggregateEvent;
-	
+    public record VenueStatusChangedEvent(Guid VenueId, VenueStatus NewStatus) : AggregateEvent;
 }

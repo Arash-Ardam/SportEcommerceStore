@@ -1,9 +1,9 @@
 ﻿namespace VenueDomain
 {
-    public class Facility
+    public record Facility
     {
-        public string Title { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
+        public string Title { get; private set; } = string.Empty;
+        public string Description { get; private set; } = string.Empty;
 
 		private Facility()
 		{
@@ -11,10 +11,17 @@
 		}
 
 		public static Facility Build(string title, string description)
-			=> new Facility
+		{
+			if(string.IsNullOrWhiteSpace(title))
+			{
+				throw VenueErrors.InvalidFacilityTitle();
+			}
+
+			return new Facility
 			{
 				Title = title,
 				Description = description
 			};
+		}
 	}
 }

@@ -1,8 +1,33 @@
-﻿namespace SharedKernel
+namespace SharedKernel
 {
-    public abstract class Entity<TId>
+    // notnull: کامپایلر مطمئن می‌شود Id هیچ‌وقت null نیست (هشدارهای CS8602 از بین می‌روند)
+    public abstract class Entity<TId> where TId : notnull
     {
-        public TId Id { get; protected set; }
+        public TId Id { get; protected set; } = default!;
         protected Entity() { }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not Entity<TId> other)
+                return false;
+            if (ReferenceEquals(this, other))
+                return true;
+            if (GetType() != other.GetType())
+                return false;
+            return EqualityComparer<TId>.Default.Equals(Id, other.Id);
+        }
+
+        public override int GetHashCode() => EqualityComparer<TId>.Default.GetHashCode(Id);
+
+        public static bool operator ==(Entity<TId>? left, Entity<TId>? right)
+        {
+            if (left is null && right is null)
+                return true;
+            if (left is null || right is null)
+                return false;
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(Entity<TId>? left, Entity<TId>? right) => !(left == right);
     }
 }

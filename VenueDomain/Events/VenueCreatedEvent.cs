@@ -1,10 +1,10 @@
-﻿using SharedKernel;
+using SharedKernel;
 
 namespace VenueDomain.Events
 {
     public record VenueCreatedEvent(
-        Guid venueId,
-        string name
-        ) : AggregateEvent;
-    
+        Guid VenueId,
+        string Name,
+        Address Address,
+        GeoLocation Location) : AggregateEvent;
 }

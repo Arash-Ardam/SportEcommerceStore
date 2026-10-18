@@ -2,9 +2,21 @@
 {
     public class DomainException : Exception
     {
-        public string Code { get; set; }
-        public string Description { get; set; }
+        public string Code { get; private set; } = string.Empty;
+        public string Description { get; private set; } = string.Empty;
 
-        public override string Message => $"[{Code}] {Description}";
+		private DomainException()
+		{
+			
+		}
+
+		public static DomainException Build(string code, string description)
+			=> new DomainException
+			{
+				Code = code,
+				Description = description
+			};
+
+		public override string Message => $"[{Code}] {Description}";
     }
 }

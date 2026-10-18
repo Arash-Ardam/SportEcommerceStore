@@ -6,207 +6,170 @@ namespace VenueDomainTests
 {
 	public class VenueTests
 	{
+		private static readonly DateTimeOffset Now = new(2026, 10, 18, 10, 0, 0, TimeSpan.FromHours(3.5));
+
+		private static Address NewAddress() =>
+			Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
+
+		private static GeoLocation NewLocation() => GeoLocation.Build(35.6892, 51.3890);
+
+		private static Venue NewVenue() => Venue.Register("My Venue", "user123", NewAddress(), NewLocation(), Now);
+
+		private static string ErrorCode(Action act) => Assert.Throws<DomainException>(act).Code;
+
+		// ---------- Register ----------
+
 		[Fact]
-		public void Should_Register_With_Valid_Name()
+		public void Register_Creates_Active_Venue_With_First_Admin_And_Raises_Event()
 		{
-			// Arrange
-			var admin = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
+			var venue = NewVenue();
 
-			// Act
-			var venue = Venue.Register("My Venue", admin, address, location);
-
-			// Assert
 			Assert.Equal("My Venue", venue.Name);
 			Assert.Equal(VenueStatus.Active, venue.Status);
-			Assert.True(venue.Admins.Contains(admin));
+			Assert.Equal("user123", Assert.Single(venue.Admins).UserId);
+			Assert.IsType<VenueCreatedEvent>(Assert.Single(venue.Events));
 		}
 
-		[Fact]
-		public void Should_Throw_Exception_For_Invalid_Name()
-		{
-			// Arrange
-			var admin = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			// Act & Assert
-			Assert.Throws<DomainException>(() => Venue.Register(new string('A', 51), admin, address, location));
-		}
+		[Theory]
+		[InlineData("")]
+		[InlineData("   ")]
+		public void Register_With_Empty_Name_Throws(string name) =>
+			Assert.Equal("NULL_VENUE_NAME",
+				ErrorCode(() => Venue.Register(name, "user123", NewAddress(), NewLocation(), Now)));
 
 		[Fact]
-		public void Should_Update_Profile_With_Valid_Name()
-		{
-			// Arrange
-			var admin = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			var venue = Venue.Register("My Venue", admin, address, location);
+		public void Register_With_Null_Name_Throws() =>
+			Assert.Equal("NULL_VENUE_NAME",
+				ErrorCode(() => Venue.Register(null!, "user123", NewAddress(), NewLocation(), Now)));
 
-			var newAddress = Address.Build("Tehran", "Tehran", "خیابان انقلاب پلاک 10 واحد 1", "1371683737");
-			var newLocation = GeoLocation.Build(35.6895, 51.3895);
-			// Act
-			venue.UpdateProfile("Updated Venue", newAddress, newLocation);
-			// Assert
+		[Fact]
+		public void Register_With_Too_Long_Name_Throws() =>
+			Assert.Equal("INVALID_VENUE_NAME",
+				ErrorCode(() => Venue.Register(new string('A', Venue.NameMaxLength + 1), "user123", NewAddress(), NewLocation(), Now)));
+
+		// ---------- Profile / Relocate ----------
+
+		[Fact]
+		public void UpdateProfile_Changes_Name_And_Raises_Event()
+		{
+			var venue = NewVenue();
+			venue.ClearEvents();
+
+			venue.UpdateProfile("Updated Venue");
+
 			Assert.Equal("Updated Venue", venue.Name);
-			Assert.Equal(newAddress, venue.Address);
-			Assert.Equal(newLocation, venue.Location);
-			Assert.True(venue.Events.Any());
-			Assert.True(venue.Events.Any(e => e is VenueProfileUpdatedEvent));
+			Assert.IsType<VenueProfileUpdatedEvent>(Assert.Single(venue.Events));
 		}
 
 		[Fact]
-		public void Should_Throw_Exception_For_Invalid_Profile_Update_Name()
+		public void Relocate_With_Same_Values_Does_Not_Raise_Event()
 		{
-			// Arrange
-			var admin = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			var venue = Venue.Register("My Venue", admin, address, location);
-			var newAddress = Address.Build("Tehran", "Tehran", "خیابان انقلاب پلاک 10 واحد 1", "1371683737");
-			var newLocation = GeoLocation.Build(35.6895, 51.3895);
-			// Act & Assert
-			Assert.Throws<DomainException>(() => venue.UpdateProfile(new string('B', 51), newAddress, newLocation));
+			var venue = NewVenue();
+			venue.ClearEvents();
+
+			venue.Relocate(NewLocation(), NewAddress()); // نمونه‌ی جدید، مقادیر یکسان
+
+			Assert.Empty(venue.Events);
 		}
 
 		[Fact]
-		public void Should_Relocate_Raise_Event()
+		public void Relocate_Raises_Event_With_New_Location()
 		{
-			// Arrange
-			var admin = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			var venue = Venue.Register("My Venue", admin, address, location);
-			var newAddress = Address.Build("Tehran", "Tehran", "خیابان انقلاب پلاک 10 واحد 1", "1371683737");
-			var newLocation = GeoLocation.Build(35.6895, 51.3895);
-			// Act
-			venue.Relocate(newLocation, newAddress, "Relocating to a new address");
-			// Assert
-			Assert.Equal(newAddress, venue.Address);
-			Assert.Equal(newLocation, venue.Location);
-			Assert.True(venue.Events.Any());
-			Assert.True(venue.Events.Any(e => e is VenueRelocatedEvent));
+			var venue = NewVenue();
+			venue.ClearEvents();
+			var newLocation = GeoLocation.Build(35.70, 51.40);
+
+			venue.Relocate(newLocation, NewAddress());
+
+			var e = Assert.IsType<VenueRelocatedEvent>(Assert.Single(venue.Events));
+			Assert.Equal(newLocation, e.Location);
+		}
+
+		// ---------- Facilities ----------
+
+		[Fact]
+		public void AddFacility_Duplicate_Title_Throws()
+		{
+			var venue = NewVenue();
+			venue.AddFacility(Facility.Build("جکوزی", "آب گرم"));
+
+			Assert.Equal("DUPLICATE_FACILITY",
+				ErrorCode(() => venue.AddFacility(Facility.Build("جکوزی", "توضیح دیگر"))));
 		}
 
 		[Fact]
-		public void Should_Add_Facility_With_Valid_Title()
+		public void RemoveFacility_By_Title_Removes_It()
 		{
-			// Arrange
-			var admin = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			var venue = Venue.Register("My Venue", admin, address, location);
-			var facility = Facility.Build("جکوزی", "در ابعاد کوچک و بزرگ با آب گرم و سرد");
-			// Act
-			venue.AddFacility(facility);
-			// Assert
-			Assert.Contains(facility, venue.Facilities);
-			Assert.True(venue.Events.Any());
-			Assert.True(venue.Events.Any(e => e is FaclilitiesChangedEvent));
+			var venue = NewVenue();
+			venue.AddFacility(Facility.Build("جکوزی", "آب گرم"));
+
+			venue.RemoveFacility("جکوزی");
+
+			Assert.Empty(venue.Facilities);
+			Assert.IsType<FacilitiesChangedEvent>(venue.Events.Last());
 		}
 
 		[Fact]
-		public void Should_Throw_Exception_For_Duplicate_Facility()
+		public void RemoveFacility_Unknown_Throws() =>
+			Assert.Equal("FACILITY_NOT_FOUND", ErrorCode(() => NewVenue().RemoveFacility("سونا")));
+
+		// ---------- Admins ----------
+
+		[Fact]
+		public void AddAdmin_Duplicate_Throws() =>
+			Assert.Equal("DUPLICATE_ADMIN", ErrorCode(() => NewVenue().AddAdmin("user123", Now)));
+
+		[Fact]
+		public void RemoveAdmin_By_UserId_Removes_It()
 		{
-			// Arrange
-			var admin = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			var venue = Venue.Register("My Venue", admin, address, location);
-			var facility = Facility.Build("جکوزی", "در ابعاد کوچک و بزرگ با آب گرم و سرد");
-			venue.AddFacility(facility);
-			// Act & Assert
-			Assert.Throws<DomainException>(() => venue.AddFacility(facility));
+			var venue = NewVenue();
+			venue.AddAdmin("user456", Now);
+
+			venue.RemoveAdmin("user456");
+
+			Assert.DoesNotContain(venue.Admins, a => a.UserId == "user456");
 		}
 
 		[Fact]
-		public void Should_Remove_Facility()
+		public void RemoveAdmin_Last_Admin_Throws() =>
+			Assert.Equal("ADMIN_LIMIT", ErrorCode(() => NewVenue().RemoveAdmin("user123")));
+
+		[Fact]
+		public void RemoveAdmin_Unknown_Throws() =>
+			Assert.Equal("ADMIN_NOT_FOUND", ErrorCode(() => NewVenue().RemoveAdmin("nobody")));
+
+		// ---------- Status ----------
+
+		[Fact]
+		public void Suspend_Twice_Throws()
 		{
-			// Arrange
-			var admin = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			var venue = Venue.Register("My Venue", admin, address, location);
-			var facility = Facility.Build("جکوزی", "در ابعاد کوچک و بزرگ با آب گرم و سرد");
-			venue.AddFacility(facility);
-			// Act
-			venue.RemoveFacility(facility);
-			// Assert
-			Assert.DoesNotContain(facility, venue.Facilities);
-			Assert.True(venue.Events.Any());
-			Assert.True(venue.Events.Any(e => e is FaclilitiesChangedEvent));
+			var venue = NewVenue();
+			venue.Suspend();
+
+			Assert.Equal("INVALID_VENUE_STATUS_TRANSITION", ErrorCode(() => venue.Suspend()));
 		}
 
 		[Fact]
-		public void Should_Throw_Exception_For_Nonexistent_Facility_Removal()
-		{
-			// Arrange
-			var admin = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			var venue = Venue.Register("My Venue", admin, address, location);
-			var facility = Facility.Build("جکوزی", "در ابعاد کوچک و بزرگ با آب گرم و سرد");
-			// Act & Assert
-			Assert.Throws<DomainException>(() => venue.RemoveFacility(facility));
-		}
+		public void Activate_When_Already_Active_Throws() =>
+			Assert.Equal("INVALID_VENUE_STATUS_TRANSITION", ErrorCode(() => NewVenue().Activate()));
+
+		// ---------- Value Objects ----------
 
 		[Fact]
-		public void Should_Add_Admin()
-		{
-			// Arrange
-			var admin1 = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			var venue = Venue.Register("My Venue", admin1, address, location);
-			var admin2 = VenueAdmin.Build("user456", DateTimeOffset.UtcNow);
-			// Act
-			venue.AddAdmin(admin2);
-			// Assert
-			Assert.Contains(admin2, venue.Admins);
-		}
+		public void Address_With_Same_Values_Are_Equal() =>
+			Assert.Equal(NewAddress(), NewAddress());
 
-		[Fact]
-		public void Should_Throw_Exception_For_Duplicate_Admin()
-		{
-			// Arrange
-			var admin1 = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			var venue = Venue.Register("My Venue", admin1, address, location);
-			var admin2 = VenueAdmin.Build("user123", DateTimeOffset.UtcNow); // Same userId as admin1
-																			 // Act & Assert
-			Assert.Throws<DomainException>(() => venue.AddAdmin(admin2));
-		}
+		[Theory]
+		[InlineData("12345")]
+		[InlineData("12345abcde")]
+		public void Address_Invalid_PostalCode_Throws(string postalCode) =>
+			Assert.Equal("INVALID_POSTAL_CODE",
+				ErrorCode(() => Address.Build("Tehran", "Tehran", "جزئیات", postalCode)));
 
-		[Fact]
-		public void Should_Remove_Admin()
-		{
-			// Arrange
-			var admin1 = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			var venue = Venue.Register("My Venue", admin1, address, location);
-			var admin2 = VenueAdmin.Build("user456", DateTimeOffset.UtcNow);
-			venue.AddAdmin(admin2);
-
-			// Act
-			venue.RemoveAdmin(admin2);
-
-			// Assert
-			Assert.DoesNotContain(admin2, venue.Admins);
-		}
-
-		[Fact]
-		public void Should_Throw_Exception_For_Nonexistent_Admin_Removal()
-		{
-			// Arrange
-			var admin1 = VenueAdmin.Build("user123", DateTimeOffset.UtcNow);
-			var address = Address.Build("Tehran", "Tehran", "بلوار آزادی خیابان جلال خوشی پلاک 20 واحد 2", "1371683736");
-			var location = GeoLocation.Build(35.6892, 51.3890);
-			var venue = Venue.Register("My Venue", admin1, address, location);
-			var admin2 = VenueAdmin.Build("user456", DateTimeOffset.UtcNow); // Not added to the venue
-			// Act & Assert
-			Assert.Throws<DomainException>(() => venue.RemoveAdmin(admin2));
-		}
+		[Theory]
+		[InlineData(91)]
+		[InlineData(double.NaN)]
+		public void GeoLocation_Invalid_Latitude_Throws(double latitude) =>
+			Assert.Equal("INVALID_LATITUDE", ErrorCode(() => GeoLocation.Build(latitude, 51)));
 	}
 }

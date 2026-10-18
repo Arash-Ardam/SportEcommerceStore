@@ -1,9 +1,10 @@
-﻿using SharedKernel;
+using SharedKernel;
 
 namespace VenueDomain.Events
 {
+    // جستجوی «نزدیک‌ترین باشگاه» مختصات جدید را لازم دارد
     public record VenueRelocatedEvent(
         Guid VenueId,
-        string description) : AggregateEvent;
-
+        Address Address,
+        GeoLocation Location) : AggregateEvent;
 }
