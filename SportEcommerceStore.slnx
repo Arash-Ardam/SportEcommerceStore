@@ -10,6 +10,9 @@
   <Folder Name="/src/Modules/Venue/">
     <Project Path="VenueDomain/VenueDomain.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Wallet/">
+    <Project Path="WalletDomain/WalletDomain.csproj" Id="c9d41d94-2ebd-4b02-b547-6b052e0df234" />
+  </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Modules/" />
   <Folder Name="/tests/Modules/Identity/">
@@ -17,5 +20,8 @@
   </Folder>
   <Folder Name="/tests/Modules/Venues/">
     <Project Path="VenueDomainTests/VenueDomainTests.csproj" Id="29406b2f-283f-40fa-a34f-06df5ee4cc8f" />
+  </Folder>
+  <Folder Name="/tests/Modules/Wallet/">
+    <Project Path="WalletDomain.Tests/WalletDomain.Tests.csproj" Id="1709bc1d-19f6-4e4e-affd-17884227413d" />
   </Folder>
 </Solution>
