@@ -7,6 +7,9 @@
   <Folder Name="/src/Modules/Identity/">
     <Project Path="IdentityDomain/IdentityDomain.csproj" Id="5fa1fad1-ad56-4e36-bf97-76d91cac88c5" />
   </Folder>
+  <Folder Name="/src/Modules/Payment/">
+    <Project Path="PaymentDomain/PaymentDomain.csproj" Id="e343edf2-2b9a-4b1f-aceb-31ee75cc06db" />
+  </Folder>
   <Folder Name="/src/Modules/Venue/">
     <Project Path="VenueDomain/VenueDomain.csproj" />
   </Folder>
@@ -17,6 +20,9 @@
   <Folder Name="/tests/Modules/" />
   <Folder Name="/tests/Modules/Identity/">
     <Project Path="IdentityDomain.Tests/IdentityDomain.Tests.csproj" Id="6f5cc91b-3fff-4aa2-a110-9ab2edb3b948" />
+  </Folder>
+  <Folder Name="/tests/Modules/Payment/">
+    <Project Path="PaymentDomainTests/PaymentDomainTests.csproj" Id="139e0ee9-a9a1-488a-8a62-50ebb46f1762" />
   </Folder>
   <Folder Name="/tests/Modules/Venues/">
     <Project Path="VenueDomainTests/VenueDomainTests.csproj" Id="29406b2f-283f-40fa-a34f-06df5ee4cc8f" />
