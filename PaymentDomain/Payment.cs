@@ -80,7 +80,7 @@ namespace PaymentDomain
 		public void Expire(DateTimeOffset now)
 		{
 			if (Status != PaymentStatus.Pending) throw PaymentErrors.InvalidTransactionStatus();
-			if ((now - CreatedAt).TotalMinutes > 20)
+			if ((now - CreatedAt).TotalMinutes >= 20)
 			{
 				Status = PaymentStatus.Expired;
 				CompletedAt = now;

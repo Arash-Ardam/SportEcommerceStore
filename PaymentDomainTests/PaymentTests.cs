@@ -384,6 +384,30 @@ namespace PaymentDomainTests
 			var exception = Assert.Throws<DomainException>(() => payment.Expire(now));
 			Assert.Equal("PaymentDomain.InvalidTransactionStatus", exception.Code);
 		}
+
+		[Fact]
+		public void Should_Mark_Succeeded_Expired_Payment()
+		{
+			// Arrange
+			var bookingId = Guid.NewGuid();
+			var userId = "test-user-1";
+			var amount = 30000;
+			var method = PaymentMethod.Wallet;
+			var createdAt = DateTimeOffset.UtcNow;
+			var now = createdAt.AddMinutes(25);
+			var payment = Payment.Initiate(bookingId, userId, amount, method, createdAt);
+			payment.Expire(now);
+
+			// Act
+			payment.MarkSucceeded("test-tracking-code", amount, now);
+			var successEvent = payment.Events.OfType<PaymentSucceededEvent>().FirstOrDefault(e => e.PaymentId == payment.Id);
+
+			// Assert
+			Assert.Equal(PaymentStatus.Succeeded, payment.Status);
+			Assert.Equal("test-tracking-code", payment.TrackingCode);
+			Assert.Equal(now, payment.CompletedAt);
+			Assert.NotNull(successEvent);
+		}
 	}
 }
 
