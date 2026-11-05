@@ -10,6 +10,9 @@
   <Folder Name="/src/Modules/Payment/">
     <Project Path="PaymentDomain/PaymentDomain.csproj" Id="e343edf2-2b9a-4b1f-aceb-31ee75cc06db" />
   </Folder>
+  <Folder Name="/src/Modules/Scheduling/">
+    <Project Path="SchedulingDomain/SchedulingDomain.csproj" Id="df585772-4c29-406e-bdd0-350185c2212f" />
+  </Folder>
   <Folder Name="/src/Modules/Venue/">
     <Project Path="VenueDomain/VenueDomain.csproj" />
   </Folder>
@@ -23,6 +26,9 @@
   </Folder>
   <Folder Name="/tests/Modules/Payment/">
     <Project Path="PaymentDomainTests/PaymentDomainTests.csproj" Id="139e0ee9-a9a1-488a-8a62-50ebb46f1762" />
+  </Folder>
+  <Folder Name="/tests/Modules/Scheduling/">
+    <Project Path="WeeklyScheduleDomainTests/SchedulingDomainTests.csproj" Id="2b8cc544-d318-49e2-9be7-514e324bf027" />
   </Folder>
   <Folder Name="/tests/Modules/Venues/">
     <Project Path="VenueDomainTests/VenueDomainTests.csproj" Id="29406b2f-283f-40fa-a34f-06df5ee4cc8f" />

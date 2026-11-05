@@ -77,15 +77,6 @@ namespace PaymentDomain
 			Raise(new PaymentFailedEvent(Id,BookingId, UserId, reason, now));
 		}
 
-		public void Expire(DateTimeOffset now)
-		{
-			if (Status != PaymentStatus.Pending) throw PaymentErrors.InvalidTransactionStatus();
-			if ((now - CreatedAt).TotalMinutes >= 20)
-			{
-				Status = PaymentStatus.Expired;
-				CompletedAt = now;
-				Raise(new PaymentExpiredEvent(Id,BookingId,UserId!,now));
-			}
-		}
+
 	}
 }
